@@ -1,0 +1,637 @@
+<!-- directory.html (Excel-like header dropdown filters + checkbox multi-select) -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="FLINTA*-Register" />
+    <title>FLINTA*-Register</title>
+
+    <link rel="icon" type="image/png" href="favicon.ico" />
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic,700italic"
+      rel="stylesheet"
+      type="text/css"
+    />
+
+    <link href="css/styles.css" rel="stylesheet" />
+
+    <style>
+      .table-responsive { overflow-x: auto; }
+      th { white-space: nowrap; vertical-align: middle; }
+      td { vertical-align: top; }
+      .muted { opacity: 0.75; }
+      .kontakt { font-family: inherit; }
+
+      /* Header filter button */
+      .th-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+      }
+      .filter-btn {
+        border: 1px solid rgba(0,0,0,.15);
+        background: #fff;
+        border-radius: .375rem;
+        padding: .125rem .4rem;
+        line-height: 1.2;
+      }
+      .filter-btn .bi { font-size: 1rem; }
+
+      /* Dropdown content */
+      .filter-dropdown {
+        width: 280px;
+        padding: .75rem;
+      }
+      .filter-list {
+        max-height: 220px;
+        overflow: auto;
+        border: 1px solid rgba(0,0,0,.1);
+        border-radius: .375rem;
+        padding: .5rem;
+        background: #fff;
+      }
+      .filter-search { margin-bottom: .5rem; }
+      .form-check { margin-bottom: .25rem; }
+
+      /* Active filter pills */
+      .pill {
+        display:inline-flex;
+        align-items:center;
+        gap:.25rem;
+        padding:.15rem .5rem;
+        border-radius:999px;
+        border:1px solid rgba(0,0,0,.15);
+        margin:0 .25rem .25rem 0;
+        font-size: .875rem;
+      }
+      .pill button {
+        border: none;
+        background: transparent;
+        line-height: 1;
+        padding: 0 .25rem;
+        cursor: pointer;
+      }
+
+      /* Make dropdown stay open when clicking inside */
+      .dropdown-menu { --bs-dropdown-padding-y: 0; }
+      .dropdown-menu .filter-dropdown { padding: .75rem; }
+
+      /* Small helpers */
+      .btn-xs { padding: .15rem .5rem; font-size: .85rem; }
+      
+      /* highlight header when filter active */
+    th.filter-active {
+        outline: 2px solid rgba(13,110,253,.6); /* bootstrap primary-ish */
+        outline-offset: -2px;
+        background: rgba(13,110,253,.06);
+    }
+    </style>
+  </head>
+
+  <body>
+    <!-- Navigation-->
+    <nav class="navbar navbar-light bg-light static-top">
+      <div class="container">
+        <a class="navbar-brand" href="index.html">Mission</a>
+        <a class="nav-link d-inline-block" href="directory.html">FLINTA*-Register</a>
+      </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="bg-dark py-5">
+      <div class="container position-relative">
+        <div class="row justify-content-center">
+          <div class="col-xl-10">
+            <div class="text-center text-white">
+              <h1 class="mb-2">FLINTA*-Register</h1>
+              <p class="mb-0 muted">
+                Willkommen auf der Register-Seite. Hier sind alle Personen aufgelistet, die ihre Informationen eingetragen haben.
+              </p>
+              <p class="mb-0 muted">
+                Die Liste kann mit der Freitextsuche nach beliebigen Begriffen durchsucht werden. Außerdem haben einige Spalten auch eine Filterfunktion eingebaut. Wenn du z.B. eine Baustelle in Berlin planst und dafür eine Person mit den Qualifikationen SKT-A und SKT-B sowie den Ressourcen Hacker und Motorsäge suchst, kannst du die Spalten "Bundesland", "Qualifikationen" und "Ressourcen" entsprechend filtern, um passende Einträge angezeigt zu bekommen. Oben wird dir angezeigt, welche Filter grade aktiv sind.  
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="py-4">
+      <div class="container">
+
+        <!-- Actions + Status -->
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+          <button id="resetBtn" class="btn btn-outline-secondary">Zurücksetzen</button>
+          <div id="status" class="muted"></div>
+        </div>
+
+        <!-- Active filter pills -->
+        <div id="activeFilters" class="mb-3"></div>
+
+        <!-- Freitextsuche -->
+        <div class="row g-3 mb-3">
+          <div class="col-12">
+            <label for="searchInput" class="form-label">Suche (Freitext)</label>
+            <input
+              id="searchInput"
+              type="text"
+              class="form-control"
+              placeholder='z.B. "Berlin", "Hacker", "SKT-B" oder "Paula"'
+              autocomplete="off"
+            />
+            <div class="form-text">
+              Die Suche erfolgt über alle Spalten.
+            </div>
+          </div>
+        </div>
+
+        <!-- Table with header filters -->
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle">
+            <thead>
+              <tr>
+                <!-- Bundesland -->
+                <th id="th-bundesland">
+                  <div class="th-wrap">
+                    <span>Bundesland</span>
+                    <div class="dropdown">
+                      <button class="filter-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Filter">
+                        <i class="bi bi-funnel"></i>
+                      </button>
+                      <div class="dropdown-menu filter-dropdown" data-filter-menu="bundesland">
+                        <input id="bundeslandFilterSearch" class="form-control form-control-sm filter-search" placeholder="Suchen…" />
+                        <div id="bundeslandChecks" class="filter-list"></div>
+                        <div class="d-flex justify-content-between mt-2">
+                          <button class="btn btn-outline-secondary btn-xs" type="button" data-clear-group="bundesland">Alle löschen</button>
+                          <span class="muted" id="bundeslandCount"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </th>
+
+                <!-- Region -->
+                <th id="th-region">
+                  <div class="th-wrap">
+                    <span>Region</span>
+                    <div class="dropdown">
+                      <button class="filter-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Filter">
+                        <i class="bi bi-funnel"></i>
+                      </button>
+                      <div class="dropdown-menu filter-dropdown" data-filter-menu="region">
+                        <input id="regionFilterSearch" class="form-control form-control-sm filter-search" placeholder="Suchen…" />
+                        <div id="regionChecks" class="filter-list"></div>
+                        <div class="d-flex justify-content-between mt-2">
+                          <button class="btn btn-outline-secondary btn-xs" type="button" data-clear-group="region">Alle löschen</button>
+                          <span class="muted" id="regionCount"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </th>
+
+                <!-- Kontaktdaten (no filter) -->
+                <th>Kontaktdaten</th>
+
+                <!-- Qualifikationen -->
+                <th id="th-qualifikation">
+                  <div class="th-wrap">
+                    <span>Qualifikationen</span>
+                    <div class="dropdown">
+                      <button class="filter-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Filter">
+                        <i class="bi bi-funnel"></i>
+                      </button>
+                      <div class="dropdown-menu filter-dropdown" data-filter-menu="qualifikation">
+                        <input id="qualifikationFilterSearch" class="form-control form-control-sm filter-search" placeholder="Suchen…" />
+                        <div id="qualifikationChecks" class="filter-list"></div>
+                        <div class="d-flex justify-content-between mt-2">
+                          <button class="btn btn-outline-secondary btn-xs" type="button" data-clear-group="qualifikation">Alle löschen</button>
+                          <span class="muted" id="qualifikationCount"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </th>
+
+                <!-- Reisebereitschaft -->
+                <th id="th-reise">
+                  <div class="th-wrap">
+                    <span>Reisebereitschaft</span>
+                    <div class="dropdown">
+                      <button class="filter-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Filter">
+                        <i class="bi bi-funnel"></i>
+                      </button>
+                      <div class="dropdown-menu filter-dropdown" data-filter-menu="reise">
+                        <input id="reiseFilterSearch" class="form-control form-control-sm filter-search" placeholder="Suchen…" />
+                        <div id="reiseChecks" class="filter-list"></div>
+                        <div class="d-flex justify-content-between mt-2">
+                          <button class="btn btn-outline-secondary btn-xs" type="button" data-clear-group="reise">Alle löschen</button>
+                          <span class="muted" id="reiseCount"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </th>
+
+                <!-- Ressourcen -->
+                <th id="th-ressource">
+                  <div class="th-wrap">
+                    <span>Ressourcen</span>
+                    <div class="dropdown">
+                      <button class="filter-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Filter">
+                        <i class="bi bi-funnel"></i>
+                      </button>
+                      <div class="dropdown-menu filter-dropdown" data-filter-menu="ressource">
+                        <input id="ressourceFilterSearch" class="form-control form-control-sm filter-search" placeholder="Suchen…" />
+                        <div id="ressourceChecks" class="filter-list"></div>
+                        <div class="d-flex justify-content-between mt-2">
+                          <button class="btn btn-outline-secondary btn-xs" type="button" data-clear-group="ressource">Alle löschen</button>
+                          <span class="muted" id="ressourceCount"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </th>
+
+                <!-- Sonstiges (no filter) -->
+                <th>Sonstiges</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="noResults" class="alert alert-light border d-none">
+          Keine Treffer.
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer-->
+    <footer class="footer bg-light">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-12 h-100 text-center my-auto">
+            <p class="text-muted small mb-4 mb-lg-0">
+              &copy; FLINTA* Baumpflege Netzwerk 2026. All Rights Reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      const DATA_URL = "https://script.google.com/macros/s/AKfycbxmfAqvZyp1GjNGVvfhNMpD46RUi1VXWFjY2hJnTJXY4QCv98bwW-C9tdbySlM7KxNl/exec";
+
+      let allRows = [];
+
+      const statusEl = document.getElementById("status");
+      const searchInput = document.getElementById("searchInput");
+      const tableBody = document.getElementById("tableBody");
+      const noResults = document.getElementById("noResults");
+      const activeFiltersEl = document.getElementById("activeFilters");
+      const resetBtn = document.getElementById("resetBtn");
+
+      const containers = {
+        bundesland: document.getElementById("bundeslandChecks"),
+        region: document.getElementById("regionChecks"),
+        reise: document.getElementById("reiseChecks"),
+        qualifikation: document.getElementById("qualifikationChecks"),
+        ressource: document.getElementById("ressourceChecks"),
+      };
+
+      const searchBoxes = {
+        bundesland: document.getElementById("bundeslandFilterSearch"),
+        region: document.getElementById("regionFilterSearch"),
+        reise: document.getElementById("reiseFilterSearch"),
+        qualifikation: document.getElementById("qualifikationFilterSearch"),
+        ressource: document.getElementById("ressourceFilterSearch"),
+      };
+
+      const countEls = {
+        bundesland: document.getElementById("bundeslandCount"),
+        region: document.getElementById("regionCount"),
+        reise: document.getElementById("reiseCount"),
+        qualifikation: document.getElementById("qualifikationCount"),
+        ressource: document.getElementById("ressourceCount"),
+      };
+
+      function escapeHtml(s) {
+        return String(s ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function formatKontaktdaten(text) {
+        const t = String(text ?? "").trim();
+        if (!t) return "";
+
+        const lines = t.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+        const formatted = lines.map(line => {
+          if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(line)) {
+            const e = escapeHtml(line);
+            return `<a href="mailto:${e}">${e}</a>`;
+          }
+          if (/^https?:\/\/\S+$/i.test(line)) {
+            const u = escapeHtml(line);
+            return `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`;
+          }
+          return escapeHtml(line);
+        });
+
+        return formatted.join("<br>");
+      }
+
+      function renderTable(rows) {
+        tableBody.innerHTML = "";
+        noResults.classList.toggle("d-none", rows.length > 0);
+
+        rows.forEach(r => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${escapeHtml(r.Bundesland || "")}</td>
+            <td>${escapeHtml(r.Region || "")}</td>
+            <td class="kontakt">${formatKontaktdaten(r.Kontaktdaten || "")}</td>
+            <td>${escapeHtml(r.Qualifikationen || "")}</td>
+            <td>${escapeHtml(r.Reisebereitschaft || "")}</td>
+            <td>${escapeHtml(r.Ressourcen || "")}</td>
+            <td>${escapeHtml(r.Sonstiges || "")}</td>
+          `;
+          tableBody.appendChild(tr);
+        });
+
+        statusEl.textContent = `${rows.length} Einträge`;
+      }
+
+      function splitCommaList(s) {
+        return String(s ?? "")
+          .split(",")
+          .map(x => x.trim())
+          .filter(Boolean);
+      }
+
+      function uniqueSorted(arr) {
+        return Array.from(new Set(arr)).sort((a, b) => a.localeCompare(b, "de"));
+      }
+
+      // Keep dropdown open when clicking inside
+      document.addEventListener("click", (e) => {
+        const menu = e.target.closest(".dropdown-menu");
+        if (menu && menu.querySelector(".filter-dropdown")) {
+          e.stopPropagation();
+        }
+      }, true);
+
+      function buildCheckboxList(containerEl, values, groupName, filterSearchText) {
+        containerEl.innerHTML = "";
+        const q = String(filterSearchText || "").trim().toLowerCase();
+
+        const shown = values.filter(v => !q || v.toLowerCase().includes(q));
+        shown.forEach((value, idx) => {
+          const id = `${groupName}_${idx}`.replace(/\W+/g, "_");
+          const div = document.createElement("div");
+          div.className = "form-check";
+          div.innerHTML = `
+            <input class="form-check-input" type="checkbox" id="${id}" value="${escapeHtml(value)}" data-group="${groupName}">
+            <label class="form-check-label" for="${id}">${escapeHtml(value)}</label>
+          `;
+          containerEl.appendChild(div);
+        });
+
+        if (countEls[groupName]) countEls[groupName].textContent = `${shown.length} Optionen`;
+
+        if (!containerEl.dataset.bound) {
+          containerEl.addEventListener("change", () => applyFilters());
+          containerEl.dataset.bound = "1";
+        }
+      }
+
+      function getSelectedValues(groupName) {
+        const selector = `input[type="checkbox"][data-group="${groupName}"]:checked`;
+        return Array.from(document.querySelectorAll(selector)).map(cb => cb.value);
+      }
+
+      function clearGroup(groupName) {
+        document.querySelectorAll(`input[type="checkbox"][data-group="${groupName}"]`).forEach(cb => cb.checked = false);
+        applyFilters();
+      }
+
+      // AND logic: row must include ALL selected items (comma fields)
+      function includesAllFromCommaField(commaField, selectedArray) {
+        const set = new Set(
+          String(commaField || "")
+            .toLowerCase()
+            .split(",")
+            .map(s => s.trim())
+            .filter(Boolean)
+        );
+        return selectedArray.every(x => set.has(String(x).toLowerCase().trim()));
+      }
+
+      // OR exact match: row matches if field equals ANY selected value
+      function matchesAnyExact(fieldValue, selectedArray) {
+        const v = String(fieldValue || "").trim().toLowerCase();
+        if (!v) return false;
+        const selected = selectedArray.map(x => String(x).trim().toLowerCase());
+        return selected.includes(v);
+      }
+
+      // OR for comma fields: matches if row contains ANY selected
+      function includesAnyFromCommaField(commaField, selectedArray) {
+        const set = new Set(
+          String(commaField || "")
+            .toLowerCase()
+            .split(",")
+            .map(s => s.trim())
+            .filter(Boolean)
+        );
+        return selectedArray.some(x => set.has(String(x).toLowerCase().trim()));
+      }
+
+      // Store item lists so search-in-dropdown can rebuild
+      const itemLists = {
+        bundesland: [],
+        region: [],
+        reise: [],
+        qualifikation: [],
+        ressource: []
+      };
+
+      function populateFiltersFromData() {
+        const bundeslandItems = [];
+        const regionItems = [];
+        const reiseItems = [];
+        const qualifikationItems = [];
+        const ressourceItems = [];
+
+        allRows.forEach(r => {
+          splitCommaList(r.Bundesland).forEach(x => bundeslandItems.push(x));
+          const reg = String(r.Region || "").trim();
+          if (reg) regionItems.push(reg);
+          const reis = String(r.Reisebereitschaft || "").trim();
+          if (reis) reiseItems.push(reis);
+          splitCommaList(r.Qualifikationen).forEach(x => qualifikationItems.push(x));
+          splitCommaList(r.Ressourcen).forEach(x => ressourceItems.push(x));
+        });
+
+        itemLists.bundesland = uniqueSorted(bundeslandItems);
+        itemLists.region = uniqueSorted(regionItems);
+        itemLists.reise = uniqueSorted(reiseItems);
+        itemLists.qualifikation = uniqueSorted(qualifikationItems);
+        itemLists.ressource = uniqueSorted(ressourceItems);
+
+        // Build initially
+        buildCheckboxList(containers.bundesland, itemLists.bundesland, "bundesland", "");
+        buildCheckboxList(containers.region, itemLists.region, "region", "");
+        buildCheckboxList(containers.reise, itemLists.reise, "reise", "");
+        buildCheckboxList(containers.qualifikation, itemLists.qualifikation, "qualifikation", "");
+        buildCheckboxList(containers.ressource, itemLists.ressource, "ressource", "");
+
+        // bind search inputs to live-filter lists
+        Object.keys(searchBoxes).forEach(group => {
+          const input = searchBoxes[group];
+          if (input.dataset.bound) return;
+
+          input.addEventListener("input", () => {
+            buildCheckboxList(containers[group], itemLists[group], group, input.value);
+          });
+
+          input.dataset.bound = "1";
+        });
+
+        // bind clear buttons
+        document.querySelectorAll("[data-clear-group]").forEach(btn => {
+          if (btn.dataset.bound) return;
+          btn.addEventListener("click", (e) => {
+            const group = e.currentTarget.getAttribute("data-clear-group");
+            clearGroup(group);
+          });
+          btn.dataset.bound = "1";
+        });
+      }
+
+      function renderActiveFilterPills(filters) {
+        activeFiltersEl.innerHTML = "";
+
+        const entries = [];
+        for (const [group, values] of Object.entries(filters)) {
+          values.forEach(v => entries.push({ group, value: v }));
+        }
+        if (entries.length === 0) return;
+
+        const labelMap = {
+          bundesland: "Bundesland",
+          region: "Region",
+          reise: "Reisebereitschaft",
+          qualifikation: "Qualifikation",
+          ressource: "Ressource"
+        };
+
+        entries.forEach(({ group, value }) => {
+          const pill = document.createElement("span");
+          pill.className = "pill";
+          pill.innerHTML = `
+            <span><strong>${escapeHtml(labelMap[group] || group)}:</strong> ${escapeHtml(value)}</span>
+            <button type="button" aria-label="remove">×</button>
+          `;
+          pill.querySelector("button").addEventListener("click", () => {
+            const selector = `input[type="checkbox"][data-group="${group}"][value="${CSS.escape(value)}"]`;
+            const cb = document.querySelector(selector);
+            if (cb) cb.checked = false;
+            applyFilters();
+          });
+          activeFiltersEl.appendChild(pill);
+        });
+      }
+
+      function applyFilters() {
+        const q = searchInput.value.trim().toLowerCase();
+
+        const selected = {
+          bundesland: getSelectedValues("bundesland"),     // OR
+          region: getSelectedValues("region"),             // OR
+          reise: getSelectedValues("reise"),               // OR
+          qualifikation: getSelectedValues("qualifikation"),// AND
+          ressource: getSelectedValues("ressource"),       // AND
+        };
+
+        renderActiveFilterPills(selected);
+
+        const filtered = allRows.filter(r => {
+          // Bundesland OR (comma field)
+          if (selected.bundesland.length && !includesAnyFromCommaField(r.Bundesland, selected.bundesland)) return false;
+
+          // Region OR (exact)
+          if (selected.region.length && !matchesAnyExact(r.Region, selected.region)) return false;
+
+          // Reise OR (exact)
+          if (selected.reise.length && !matchesAnyExact(r.Reisebereitschaft, selected.reise)) return false;
+
+          // Qualifikationen AND (comma field)
+          if (selected.qualifikation.length && !includesAllFromCommaField(r.Qualifikationen, selected.qualifikation)) return false;
+
+          // Ressourcen AND (comma field)
+          if (selected.ressource.length && !includesAllFromCommaField(r.Ressourcen, selected.ressource)) return false;
+
+          // Free-text across all fields
+          if (!q) return true;
+          const blob = [
+            r.Bundesland, r.Region, r.Kontaktdaten, r.Qualifikationen,
+            r.Reisebereitschaft, r.Ressourcen, r.Sonstiges
+          ].join(" ").toLowerCase();
+          return blob.includes(q);
+        });
+
+        renderTable(filtered);
+      }
+
+      async function loadData() {
+        statusEl.textContent = "Lade…";
+        try {
+          const res = await fetch(DATA_URL, { cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          if (!Array.isArray(json)) throw new Error("JSON is not an array");
+
+          allRows = json;
+          populateFiltersFromData();
+          applyFilters();
+        } catch (e) {
+          statusEl.textContent = "Fehler beim Laden der Daten.";
+          tableBody.innerHTML = "";
+          noResults.classList.remove("d-none");
+          noResults.textContent = `Fehler: ${e.message}`;
+        }
+      }
+
+      // events
+      searchInput.addEventListener("input", applyFilters);
+
+      resetBtn.addEventListener("click", () => {
+        searchInput.value = "";
+        activeFiltersEl.innerHTML = "";
+        Object.values(searchBoxes).forEach(i => (i.value = ""));
+        document.querySelectorAll('input[type="checkbox"][data-group]').forEach(cb => (cb.checked = false));
+        populateFiltersFromData(); // rebuild lists after clearing search boxes
+        applyFilters();
+      });
+
+      loadData();
+    </script>
+  </body>
+</html>
